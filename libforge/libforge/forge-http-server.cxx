@@ -1,4 +1,5 @@
 #include <libforge/forge-http-server.hxx>
+#include <libforge/forge-http-session.hxx>
 
 #include <iostream>
 
@@ -43,6 +44,12 @@ namespace forge
       try
       {
         auto s (co_await acceptor_.async_accept (boost::asio::use_awaitable));
+
+        // Create a session to manage the lifetime of the accepted connection
+        // and transfer ownership of the socket to it.
+        //
+        auto session (std::make_shared<http_session> (std::move (s)));
+        session->run ();
       }
       catch (const boost::system::system_error& e)
       {
