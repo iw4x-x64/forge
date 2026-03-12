@@ -9,8 +9,9 @@ using namespace std;
 namespace forge
 {
   http_session::
-  http_session (boost::asio::ip::tcp::socket s)
-    : socket_ (std::move (s))
+  http_session (boost::asio::ip::tcp::socket s, http_route& r)
+    : socket_ (std::move (s)),
+      router_ (r)
   {
   }
 
@@ -56,8 +57,26 @@ namespace forge
         // and Connection header.
         //
         bool k (q.keep_alive ());
-        r.keep_alive (k);
-        r.body ().assign ("Hello from forge-http\n");
+
+        // Attempt to dispatch request to the appropriate route handler
+        //
+        bool rh (router_.dispatch (q, r));
+
+        if (!rh)
+        {
+          auto t (q.target ());
+          if (!boost::urls::parse_uri_reference (t))
+          {
+            r.result (boost::beast::http::status::bad_request);
+            r.body ().assign ("Bad Request\n");
+          }
+          else
+          {
+            r.result (boost::beast::http::status::not_found);
+            r.body ().assign ("Not Found\n");
+          }
+        }
+
         r.prepare_payload ();
 
         // Ship the response back.

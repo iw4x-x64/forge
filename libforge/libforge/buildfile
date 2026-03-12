@@ -1,6 +1,10 @@
 intf_libs = # Interface dependencies.
 impl_libs = # Implementation dependencies.
 
+import intf_libs += libboost-asio%lib{boost_asio}
+import intf_libs += libboost-beast%lib{boost_beast}
+import intf_libs += libboost-url%lib{boost_url}
+
 lib{forge}: {hxx ixx txx cxx}{** -version} \
             {hxx            }{    version} \
             $impl_libs $intf_libs

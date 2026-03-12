@@ -9,7 +9,8 @@ namespace forge
 {
   http_server::
   http_server (boost::asio::ip::port_type p)
-    : io_ (),
+    : router_ (),
+      io_ (),
       signals_ (io_, SIGINT, SIGTERM),
       acceptor_ (io_)
   {
@@ -48,7 +49,7 @@ namespace forge
         // Create a session to manage the lifetime of the accepted connection
         // and transfer ownership of the socket to it.
         //
-        auto session (std::make_shared<http_session> (std::move (s)));
+        auto session (std::make_shared<http_session> (std::move (s), router_));
         session->run ();
       }
       catch (const boost::system::system_error& e)
