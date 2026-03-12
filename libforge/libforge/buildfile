@@ -4,6 +4,7 @@ impl_libs = # Implementation dependencies.
 import intf_libs += libboost-asio%lib{boost_asio}
 import intf_libs += libboost-beast%lib{boost_beast}
 import intf_libs += libboost-url%lib{boost_url}
+import intf_libs += libboost-json%lib{boost_json}
 
 lib{forge}: {hxx ixx txx cxx}{** -version} \
             {hxx            }{    version} \

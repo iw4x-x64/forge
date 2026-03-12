@@ -5,4 +5,4 @@ summary: forge C++ library
 license: GPL-3.0-or-later ; GNU General Public License v3.0 or later.
 depends: * build2 >= 0.17.0
 depends: * bpkg >= 0.17.0
-depends: { libboost-asio libboost-beast libboost-url } ~1.87.0
+depends: { libboost-asio libboost-beast libboost-url libboost-json } ~1.87.0
