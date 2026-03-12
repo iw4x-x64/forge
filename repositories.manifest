@@ -1,0 +1,11 @@
+: 1
+summary: forge project repository
+
+# Forge consumes packages from the testing repository. In practice, testing
+# functions as the de facto source of up-to-date packages while maintaining a
+# reasonable level of stability.
+#
+# For background, see: build2-toolchain-packaging.xhtml#review
+:
+role: prerequisite
+location: https://pkg.cppget.org/1/testing
