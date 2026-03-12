@@ -1,8 +1,6 @@
-#include <sstream>
-#include <stdexcept>
+#include <thread>
 
-#include <libforge/version.hxx>
-#include <libforge/forge.hxx>
+#include <libforge/forge-http-server.hxx>
 
 #undef NDEBUG
 #include <cassert>
@@ -15,21 +13,14 @@ int main ()
   // Basics.
   //
   {
-    ostringstream o;
-    say_hello (o, "World");
-    assert (o.str () == "Hello, World!\n");
-  }
+    http_server s (8080);
 
-  // Empty name.
-  //
-  try
-  {
-    ostringstream o;
-    say_hello (o, "");
-    assert (false);
-  }
-  catch (const invalid_argument& e)
-  {
-    assert (e.what () == string ("empty name"));
+    jthread t ([] ()
+    {
+      this_thread::sleep_for (chrono::milliseconds (50));
+      raise (SIGINT);
+    });
+
+    s.run ();
   }
 }
