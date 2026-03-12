@@ -1,0 +1,6 @@
+$out_root/
+{
+  include libforge/
+}
+
+export $out_root/libforge/$import.target
