@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <utility>
+#include <print>
 
 namespace forge
 {
@@ -92,13 +93,13 @@ namespace forge
       // for the read/write to abort during a server shutdown.
       //
       if (c != end_of_stream && c != operation_aborted)
-        println (std::cerr, "error: session failed: {}", c.message ());
+        std::println (std::cerr, "error: session failed: {}", c.message ());
 
       co_return;
     }
     catch (const std::exception& e)
     {
-      println (std::cerr, "error: unexpected exception: {}", e.what ());
+      std::println (std::cerr, "error: unexpected exception: {}", e.what ());
       co_return;
     }
 
@@ -117,11 +118,11 @@ namespace forge
       // by the peer.
       //
       if (c != not_connected && c != connection_reset)
-        println (std::cerr, "error: session shutdown failed: {}", c.message ());
+        std::println (std::cerr, "error: session shutdown failed: {}", c.message ());
     }
     catch (const std::exception& e)
     {
-      println (std::cerr, "error: unexpected shutdown exception: {}", e.what ());
+      std::println (std::cerr, "error: unexpected shutdown exception: {}", e.what ());
     }
   }
 }

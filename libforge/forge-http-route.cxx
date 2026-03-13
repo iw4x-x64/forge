@@ -58,16 +58,16 @@ namespace forge
   }
 
   void
-  http_route::add (boost::beast::http::verb m, std::string p, http_handler h)
+  http_route::add (const verb m, std::string p, http_handler h)
   {
     rs_.push_back ({m, std::move (p), std::move (h)});
   }
 
   bool
-  http_route::dispatch (const http_req& q, http_res& s)
+  http_route::dispatch (const request<string_body>& q, response<string_body>& s)
   {
     auto t (q.target ());
-    auto r (boost::urls::parse_uri_reference (t));
+    auto r (parse_uri_reference (t));
 
     if (!r)
     {
@@ -78,7 +78,7 @@ namespace forge
       return false;
     }
 
-    auto u (*r);
+    const auto& u (*r);
     auto m (q.method ());
     auto p (u.path ());
 
@@ -101,8 +101,8 @@ namespace forge
         }
         catch (...)
         {
-          s.result (boost::beast::http::status::internal_server_error);
-          s.set (boost::beast::http::field::content_type, "text/plain");
+          s.result (internal_server_error);
+          s.set (content_type, "text/plain");
           s.body ().assign ("Internal Server Error");
           s.prepare_payload ();
         }

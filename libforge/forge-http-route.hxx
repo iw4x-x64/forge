@@ -5,19 +5,14 @@
 #include <string>
 #include <vector>
 
-#include <boost/beast.hpp>
-#include <boost/url.hpp>
+#include <libforge/forge.hxx>
 
 namespace forge
 {
-  using body     = boost::beast::http::string_body;
-  using http_req = boost::beast::http::request<body>;
-  using http_res = boost::beast::http::response<body>;
-
   using route_params = std::map<std::string, std::string, std::less<>>;
   using http_handler =
-    std::move_only_function<void (const http_req&,
-                                  http_res&,
+    std::move_only_function<void (const request<string_body>&,
+                                  response<string_body>&,
                                   const boost::urls::url_view&,
                                   const route_params&)>;
 
@@ -36,40 +31,40 @@ namespace forge
     route_builder&
     get (H&& h)
     {
-      return add (boost::beast::http::verb::get, std::forward<H> (h));
+      return add (verb::get, std::forward<H> (h));
     }
 
     template <typename H>
     route_builder&
     post (H&& h)
     {
-      return add (boost::beast::http::verb::post, std::forward<H> (h));
+      return add (verb::post, std::forward<H> (h));
     }
 
     template <typename H>
     route_builder&
     put (H&& h)
     {
-      return add (boost::beast::http::verb::put, std::forward<H> (h));
+      return add (verb::put, std::forward<H> (h));
     }
 
     template <typename H>
     route_builder&
     patch (H&& h)
     {
-      return add (boost::beast::http::verb::patch, std::forward<H> (h));
+      return add (verb::patch, std::forward<H> (h));
     }
 
     template <typename H>
     route_builder&
     del (H&& h)
     {
-      return add (boost::beast::http::verb::delete_, std::forward<H> (h));
+      return add (verb::delete_, std::forward<H> (h));
     }
 
     template <typename H>
     route_builder&
-    add (boost::beast::http::verb m, H&& h);
+    add (verb m, H&& h);
 
   private:
     http_route& r_;
@@ -80,15 +75,15 @@ namespace forge
   {
   public:
     void
-    add (boost::beast::http::verb, std::string, http_handler);
+    add (verb, std::string, http_handler);
 
     bool
-    dispatch (const http_req&, http_res&);
+    dispatch (const request<string_body>&, response<string_body>&);
 
   private:
     struct route
     {
-      boost::beast::http::verb m;
+      verb m;
       std::string p;
       http_handler h;
     };
@@ -98,7 +93,7 @@ namespace forge
 
   template <typename H>
   route_builder&
-  route_builder::add (boost::beast::http::verb m, H&& h)
+  route_builder::add (verb m, H&& h)
   {
     // We wrap the user-provided handler in a generic lambda that accepts the
     // absolute maximum set of arguments our routing framework can produce and
@@ -106,8 +101,8 @@ namespace forge
     //
     r_.add (m,
             p_,
-            [f = std::forward<H> (h)] (const http_req& q,
-                                       http_res& s,
+            [f = std::forward<H> (h)] (const request<string_body>& q,
+                                       response<string_body>& s,
                                        const boost::urls::url_view& u,
                                        const route_params& pr) mutable
     {
@@ -116,8 +111,8 @@ namespace forge
       // compiler throws away the rest.
       //
       if constexpr (std::is_invocable_v<decltype (f)&,
-                                        const http_req&,
-                                        http_res&,
+                                        const request<string_body>&,
+                                        response<string_body>&,
                                         const boost::urls::url_view&,
                                         const route_params&>)
       {
@@ -127,8 +122,8 @@ namespace forge
       // but keeps the parsed route_params.
       //
       else if constexpr (std::is_invocable_v<decltype (f)&,
-                                             const http_req&,
-                                             http_res&,
+                                             const request<string_body>&,
+                                             response<string_body>&,
                                              const route_params&>)
       {
         f (q, s, pr);
@@ -136,8 +131,8 @@ namespace forge
       // Finally, the simplest case: just the request and response objects.
       //
       else if constexpr (std::is_invocable_v<decltype (f)&,
-                                             const http_req&,
-                                             http_res&>)
+                                             const request<string_body>&,
+                                             response<string_body>&>)
       {
         f (q, s);
       }
@@ -146,10 +141,10 @@ namespace forge
       //
       else
       {
-        static_assert (
-            false,
-            "Handler signature must be: (const http_req&, "
-            "http_res&, [const url_view&], [const route_params&])");
+        static_assert (false,
+          "Handler signature must be: (const request<string_body>&, "
+          "response<string_body>&, [const url_view&], [const route_params&])"
+        );
       }
     });
 

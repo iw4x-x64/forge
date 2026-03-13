@@ -20,7 +20,7 @@ namespace forge
     acceptor_.set_option (reuse_address (true));
     acceptor_.bind (ep);
     acceptor_.listen (max_listen_connections);
-  };
+  }
 
   void http_server::
   run ()

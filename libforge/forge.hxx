@@ -15,6 +15,7 @@ namespace forge
   using boost::asio::detached;
   using boost::asio::io_context;
   using boost::asio::signal_set;
+  using boost::asio::steady_timer;
   using boost::asio::use_awaitable;
 
   // Networking primitives.
@@ -46,6 +47,13 @@ namespace forge
   //
   constexpr auto shutdown_send (socket_base::shutdown_send);
   constexpr auto max_listen_connections (socket_base::max_listen_connections);
+
+  // System error constants.
+  //
+  using boost::system::errc::too_many_files_open;
+  using boost::system::errc::too_many_files_open_in_system;
+  using boost::system::errc::no_buffer_space;
+  using boost::system::errc::not_enough_memory;
 
   // Beast HTTP server abstractions.
   //

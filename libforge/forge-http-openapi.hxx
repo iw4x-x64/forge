@@ -477,7 +477,7 @@ namespace forge
   }
 
   template <typename T>
-  inline void
+  void
   tag_invoke (boost::json::value_from_tag,
               boost::json::value& j,
               const std::shared_ptr<T>& v)
@@ -489,7 +489,7 @@ namespace forge
   }
 
   template <typename T>
-  inline boost::system::result<std::shared_ptr<T>>
+  boost::system::result<std::shared_ptr<T>>
   tag_invoke (boost::json::try_value_to_tag<std::shared_ptr<T>>,
               const boost::json::value& j)
   {
@@ -1253,10 +1253,10 @@ namespace forge
 
     for (const auto& [k, vl] : o)
     {
-      if (!k.starts_with ("x-") && k != "$ref" && k != "summary" &&
-          k != "description" && k != "get" && k != "put" && k != "post" &&
-          k != "delete" && k != "options" && k != "head" && k != "patch" &&
-          k != "trace" && k != "query" && k != "servers" && k != "parameters")
+      if (!k.starts_with ("x-") && k != R"($ref)" && k != "summary" &&
+          k != R"(description)" && k != R"(get)" && k != "put" && k != "post" &&
+          k != R"(delete)" && k != R"(options)" && k != "head" && k != "patch" &&
+          k != R"(trace)" && k != R"(query)" && k != "servers" && k != "parameters")
       {
         auto r (boost::json::try_value_to<operation> (vl));
 

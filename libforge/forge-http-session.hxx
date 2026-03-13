@@ -18,7 +18,7 @@ namespace forge
     run ();
 
   private:
-    boost::asio::awaitable<void>
+    awaitable<void>
     process ();
 
   private:
