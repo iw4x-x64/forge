@@ -1,16 +1,17 @@
 #pragma once
 
-#include <boost/asio.hpp>
-
+#include <libforge/forge.hxx>
 #include <libforge/forge-http-route.hxx>
+
+#include <libforge/export.hxx>
 
 namespace forge
 {
-  class http_server
+  class LIBFORGE_SYMEXPORT http_server
   {
   public:
     explicit
-    http_server (boost::asio::ip::port_type = 0);
+    http_server (port_type = 0);
 
     void
     run ();
@@ -18,21 +19,20 @@ namespace forge
     route_builder
     add_route (std::string p)
     {
-      return route_builder (router_, std::move (p));
+      return route_builder (http_route_, std::move (p));
     }
 
   private:
-    boost::asio::awaitable<void>
+    awaitable<void>
     accept ();
 
-    boost::asio::awaitable<void>
+    awaitable<void>
     signals ();
 
   private:
-    boost::asio::io_context io_;
-    boost::asio::signal_set signals_;
-    boost::asio::ip::tcp::acceptor acceptor_;
-
-    http_route router_;
+    io_context io_;
+    signal_set signals_;
+    acceptor   acceptor_;
+    http_route http_route_;
   };
 }

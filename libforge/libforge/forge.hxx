@@ -13,6 +13,8 @@ namespace forge
   using boost::asio::awaitable;
   using boost::asio::co_spawn;
   using boost::asio::detached;
+  using boost::asio::io_context;
+  using boost::asio::signal_set;
   using boost::asio::use_awaitable;
 
   // Networking primitives.
@@ -21,9 +23,18 @@ namespace forge
   using boost::asio::socket_base;
 
   using port_type = boost::asio::ip::port_type;
+  using acceptor = tcp::acceptor;
   using socket = tcp::socket;
   using endpoint = tcp::endpoint;
   using reuse_address = socket_base::reuse_address;
+
+  // Protocol helpers.
+  //
+  inline tcp
+  v4 ()
+  {
+    return tcp::v4 ();
+  }
 
   // Socket operations and expected error codes.
   //

@@ -8,18 +8,18 @@ using namespace std;
 namespace forge
 {
   http_server::
-  http_server (boost::asio::ip::port_type p)
-    : router_ (),
+  http_server (port_type p)
+    : http_route_ (),
       io_ (),
       signals_ (io_, SIGINT, SIGTERM),
       acceptor_ (io_)
   {
-    boost::asio::ip::tcp::endpoint ep (boost::asio::ip::tcp::v4(), p);
+    endpoint ep (v4 (), p);
 
     acceptor_.open (ep.protocol ());
-    acceptor_.set_option (boost::asio::socket_base::reuse_address (true));
+    acceptor_.set_option (reuse_address (true));
     acceptor_.bind (ep);
-    acceptor_.listen (boost::asio::socket_base::max_listen_connections);
+    acceptor_.listen (max_listen_connections);
   };
 
   void http_server::
@@ -28,8 +28,8 @@ namespace forge
     // Spawn our background coroutines. Note that their lifetime is managed
     // entirely by the io_context execution loop.
     //
-    boost::asio::co_spawn (io_,  accept (), boost::asio::detached);
-    boost::asio::co_spawn (io_, signals (), boost::asio::detached);
+    co_spawn (io_,  accept (), detached);
+    co_spawn (io_, signals (), detached);
 
     // Block until io_.stop() is invoked, either by our signal handler
     // or by an unrecoverable exception propagating from the accept loop.
@@ -37,26 +37,27 @@ namespace forge
     io_.run ();
   }
 
-  boost::asio::awaitable<void> http_server::
+  awaitable<void> http_server::
   accept ()
   {
     for (;;)
     {
       try
       {
-        auto s (co_await acceptor_.async_accept (boost::asio::use_awaitable));
+        auto s (co_await acceptor_.async_accept (use_awaitable));
 
         // Create a session to manage the lifetime of the accepted connection
         // and transfer ownership of the socket to it.
         //
-        auto session (std::make_shared<http_session> (std::move (s), router_));
+        auto session (
+          std::make_shared<http_session> (std::move (s), http_route_));
         session->run ();
       }
-      catch (const boost::system::system_error& e)
+      catch (const system_error& e)
       {
         auto c (e.code ());
 
-        if (c == boost::asio::error::operation_aborted)
+        if (c == operation_aborted)
           break;
 
         // Handle actual accept errors. Note that a common mistake is to quietly
@@ -80,18 +81,18 @@ namespace forge
     io_.stop ();
   }
 
-  boost::asio::awaitable<void> http_server::
+  awaitable<void> http_server::
   signals ()
   {
     try
     {
       // Suspend until we receive SIGINT or SIGTERM from the OS.
       //
-      co_await signals_.async_wait (boost::asio::use_awaitable);
+      co_await signals_.async_wait (use_awaitable);
 
       io_.stop ();
     }
-    catch (const boost::system::system_error& e)
+    catch (system_error& e)
     {
       auto c (e.code ());
 
@@ -99,7 +100,7 @@ namespace forge
       // error, we will get an operation_aborted error here. We can safely
       // ignore it, but anything else indicates a deeper underlying issue.
       //
-      if (c != boost::asio::error::operation_aborted)
+      if (c != operation_aborted)
         println (cerr, "error: signal wait failed: {}", e.what ());
     }
   }
