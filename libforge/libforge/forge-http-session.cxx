@@ -4,14 +4,12 @@
 #include <string>
 #include <utility>
 
-using namespace std;
-
 namespace forge
 {
   http_session::
-  http_session (boost::asio::ip::tcp::socket s, http_route& r)
+  http_session (socket s, http_route& r)
     : socket_ (std::move (s)),
-      router_ (r)
+      http_route_ (r)
   {
   }
 
@@ -20,118 +18,110 @@ namespace forge
   {
     auto self (shared_from_this ());
 
-    // Pin session to outlive asynchronous operations. Note that connection
-    // can drop out from under us at any time.
+    // Pin the session to outlive asynchronous operations. Note that the
+    // connection can drop out from under us at any time, which we expect
+    // and handle down below.
     //
-    boost::asio::co_spawn (socket_.get_executor (),
-                           [self] ()
+    co_spawn (socket_.get_executor (),
+              [self] ()
     {
       return self->process ();
-    }, boost::asio::detached);
+    }, detached);
   }
 
-  boost::asio::awaitable<void> http_session::
+  awaitable<void> http_session::
   process ()
   {
     try
     {
       for (;;)
       {
-        boost::beast::http::request<boost::beast::http::string_body> q;
+        request<string_body> rq;
 
-        // Read the next request. If the client closes connection, Beast
-        // will signals end_of_stream.
+        // Read the next request. If the client closes the connection,
+        // Beast signals end_of_stream.
         //
-        co_await boost::beast::http::async_read (socket_,
-                                                 flat_buffer_,
-                                                 q,
-                                                 boost::asio::use_awaitable);
+        co_await async_read (socket_, flat_buffer_, rq, use_awaitable);
 
-        boost::beast::http::response<boost::beast::http::string_body> r (
-          boost::beast::http::status::ok, q.version ());
+        response<string_body> rs (ok, rq.version ());
 
-        r.set (boost::beast::http::field::server, "forge-http");
-        r.set (boost::beast::http::field::content_type, "text/plain");
+        rs.set (server, "forge-http");
+        rs.set (content_type, "text/plain");
 
-        // Deduce if we should keep connection alive based on HTTP version
-        // and Connection header.
+        // Deduce if we should keep the connection alive based on the HTTP
+        // version and Connection header before consuming the request.
         //
-        bool k (q.keep_alive ());
+        bool k (rq.keep_alive ());
 
-        // Attempt to dispatch request to the appropriate route handler
+        // Attempt to dispatch the request to the appropriate route handler.
+        // If none matches, deduce whether it's a bad URI or a simple 404.
         //
-        bool rh (router_.dispatch (q, r));
+        bool d (http_route_.dispatch (rq, rs));
 
-        if (!rh)
+        if (!d)
         {
-          auto t (q.target ());
-          if (!boost::urls::parse_uri_reference (t))
+          auto t (rq.target ());
+
+          if (!parse_uri_reference (t))
           {
-            r.result (boost::beast::http::status::bad_request);
-            r.body ().assign ("Bad Request\n");
+            rs.result (bad_request);
+            rs.body ().assign ("Bad Request\n");
           }
           else
           {
-            r.result (boost::beast::http::status::not_found);
-            r.body ().assign ("Not Found\n");
+            rs.result (not_found);
+            rs.body ().assign ("Not Found\n");
           }
         }
 
-        r.prepare_payload ();
+        rs.prepare_payload ();
 
-        // Ship the response back.
+        // Ship the response back to the client.
         //
-        co_await boost::beast::http::async_write (
-          socket_, r, boost::asio::use_awaitable);
+        co_await async_write (socket_, rs, use_awaitable);
 
         if (!k)
           break;
       }
     }
-    catch (const boost::system::system_error& e)
+    catch (const system_error& e)
     {
       auto c (e.code ());
 
-      // Normal for client to close connection or abort during shutdown.
+      // It is perfectly normal for the client to close the connection or
+      // for the read/write to abort during a server shutdown.
       //
-      if (c != boost::beast::http::error::end_of_stream &&
-          c != boost::asio::error::operation_aborted)
-      {
-        println (cerr, "error: session failed: {}", c.message ());
-      }
+      if (c != end_of_stream && c != operation_aborted)
+        println (std::cerr, "error: session failed: {}", c.message ());
 
       co_return;
     }
-    catch (const exception& e)
+    catch (const std::exception& e)
     {
-      println (cerr, "error: unexpected exception during session process: {}",
-               e.what ());
+      println (std::cerr, "error: unexpected exception: {}", e.what ());
       co_return;
     }
 
-    // Perform a shutdown of the send side of the socket.
+    // Perform a graceful shutdown of the send side of the socket.
     //
     try
     {
       if (socket_.is_open ())
-        socket_.shutdown (boost::asio::ip::tcp::socket::shutdown_send);
+        socket_.shutdown (shutdown_send);
     }
-    catch (const boost::system::system_error& e)
+    catch (const system_error& e)
     {
       auto c (e.code ());
 
-      // Ignore errors if socket is already disconnected or reset by peer.
+      // Ignore errors if the socket is already disconnected or was reset
+      // by the peer.
       //
-      if (c != boost::asio::error::not_connected &&
-          c != boost::asio::error::connection_reset)
-      {
-        println (cerr, "error: session shutdown failed: {}", c.message ());
-      }
+      if (c != not_connected && c != connection_reset)
+        println (std::cerr, "error: session shutdown failed: {}", c.message ());
     }
-    catch (const exception& e)
+    catch (const std::exception& e)
     {
-      println (cerr, "error: unexpected exception during session shutdown: {}",
-               e.what ());
+      println (std::cerr, "error: unexpected shutdown exception: {}", e.what ());
     }
   }
 }
